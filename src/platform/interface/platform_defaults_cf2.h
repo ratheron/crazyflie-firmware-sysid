@@ -61,7 +61,7 @@
     #define VMOTOR2THRUST2  -0.026792504967750107f
     #define VMOTOR2THRUST3  0.006776789303971145f
     #define THRUST_MIN      0.02f
-    #define THRUST_MAX      0.1125f
+    #define THRUST_MAX      0.12f
     #define THRUST2TORQUE   0.005964552f // TODO, value is for the legacy propellers and old battery compensation
 #elif (CONFIG_THRUST_BAT_COMPENSATION_TYPE == 2)  // Thrust upgrade kit
     #define VMOTOR2THRUST0  0.006728127583707208f
@@ -77,7 +77,7 @@
     #define VMOTOR2THRUST2  -0.01847364358025878f
     #define VMOTOR2THRUST3  0.005960923942142f
     #define THRUST_MIN      0.02f
-    #define THRUST_MAX      0.1125f
+    #define THRUST_MAX      0.12f
     #define THRUST2TORQUE   0.005964552f
 #endif
 
