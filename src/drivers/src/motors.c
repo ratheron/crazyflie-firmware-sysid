@@ -156,17 +156,14 @@ float motorsCompensateBatteryVoltage(uint32_t id, float iThrust, float supplyVol
   * A suitable sanity check for disabling the voltage compensation would be
   * under 2V. That would suggest a damaged battery. This protects against
   * rushing the motors on bugs and invalid voltage levels.
-  * 
-  * Further, we check if the thrust is lower than the minimum PWM value
-  * to make sure the inversion of the fit works fine.
-  * TODO use a platform constant!!!
   */
-  if (supplyVoltage < 2.0f || iThrust < 7000.0f)
+  if (supplyVoltage < 2.0f)
   {
       return 0.0f;
   }
 
   float thrust = (iThrust / 65535.0f) * THRUST_MAX; // rescaling integer thrust to N
+  if (thrust < THRUST_MIN) return 0.0f;
   // Motor voltage to thrust is a cubic fit
   // q, r, p to calculate the inverse of the third order polynomial
   // For more info see https://math.vanderbilt.edu/schectex/courses/cubic/
