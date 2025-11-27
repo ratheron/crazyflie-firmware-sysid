@@ -1,0 +1,55 @@
+[project]
+name = "crazyflie_firmware"
+version = "0.0.1"
+description = "Models of quadrotor drones for estimation and control tasks."
+readme = "README.md"
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+]
+
+dependencies = [
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "scikit-learn",
+    "pysoem",
+    "cfclient",
+    "toml"
+]
+
+[tool.pixi.workspace]
+channels = ["memfault", "conda-forge", "anaconda"]
+platforms = ["linux-64"]
+
+[tool.pixi.environments.default]
+solve-group = "default"
+
+[tool.pixi.activation.env]
+LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PIXI_PROJECT_ROOT/.pixi/envs/$PIXI_ENVIRONMENT_NAME/lib"
+
+[tool.pixi.dependencies]
+python = "=3.12"
+pip = ">=23.0"
+
+# Toolchain
+gcc-arm-none-eabi = ">=10.3.2021.10"
+gcc = ">=11.2.0"
+make = ">=4.3"
+libxcb = ">=1.17.0,<2"
+xorg-libx11 = ">=1.8.4"
+xorg-libxext = ">=1.3.4"
+xorg-libxrender = ">=0.9.11"
+xorg-libxau = ">=1.0.11"
+xorg-libxdmcp = ">=1.1.3"
+xcb-util = ">=0.4.0"
+xcb-util-image = ">=0.4.0"
+xcb-util-keysyms = ">=0.4.0"
+xcb-util-wm = ">=0.4.1"
+xcb-util-cursor = ">=0.1.4"
+libxcb-devel-conda-x86_64 = ">=1.13"
