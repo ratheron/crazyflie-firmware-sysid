@@ -42,8 +42,13 @@
 
 // Pack WRGB into 0xWWRRGGBB
 #define WRGB(w, r, g, b)  ( ((uint32_t)(w) << 24) | ((uint32_t)(r) << 16) | ((uint32_t)(g) << 8) | (uint32_t)(b) )
+// Color extractors
+#define GET_R(c)  ((float)(((c) >> 16) & 0xFF))
+#define GET_G(c)  ((float)(((c) >>  8) & 0xFF))
+#define GET_B(c)  ((float)((c) & 0xFF))
+// Clip
+#define CLIP(v, low, up)  ( (v) < low ? low : ((v) > up ? up : (v)) )
 
-#define COLOR_OFF WRGB(0, 0, 0, 0)
 
 static uint8_t pattern = 0;
 static logVarId_t idX, idY, idZ;
@@ -52,25 +57,42 @@ static logVarId_t idVx, idVy, idVz;
 static uint32_t prevWrgbBot = 0xFFFFFFFF;
 static uint32_t prevWrgbTop = 0xFFFFFFFF;
 
+//----------------General Color definitions-------
+#define COLOR_OFF       WRGB(0, 0, 0, 0)
+#define COLOR_RED       WRGB(0, 255, 0, 0)
+#define COLOR_GREEN     WRGB(0, 0, 255, 0)
+#define COLOR_BLUE      WRGB(0, 0, 0, 255)
+#define COLOR_YELLOW    WRGB(0, 255, 255, 0)
+#define COLOR_GOLD      WRGB(0, 255, 156, 0)
+#define COLOR_ORANGE    WRGB(0, 255, 128, 0)
+#define COLOR_TURQUOISE WRGB(0, 0, 255, 255)
+#define COLOR_PINK      WRGB(0, 255, 0, 255)
+
 //----------------Pattern1: LED Cycle-------------
 
 //------------------------------------------------
 
 //----------------Pattern2: Color Mapping---------
-// Flight Space
-#define MIN_X_BOUND -2.0f
-#define MAX_X_BOUND 2.0f
-#define MIN_Y_BOUND -2.0f
-#define MAX_Y_BOUND 2.0f
-#define MIN_Z_BOUND 0.0f
-#define MAX_Z_BOUND 3.0f
+// Flight Space (make a little smaller and clip)
+#define MIN_X_BOUND -1.0f
+#define MAX_X_BOUND 1.0f
+#define MIN_Y_BOUND -1.0f
+#define MAX_Y_BOUND 1.0f
+#define MIN_Z_BOUND 1.0f
+#define MAX_Z_BOUND 2.0f
+// Colors height
+#define COLOR_HEIGHT_LOW   COLOR_ORANGE
+#define COLOR_HEIGHT_HIGH  COLOR_BLUE
+// Colors xy
+#define COLOR_XY_1   COLOR_RED
+#define COLOR_XY_2   COLOR_GREEN
+#define COLOR_XY_3   COLOR_GOLD
+#define COLOR_XY_4   COLOR_TURQUOISE
+
 //------------------------------------------------
 
 //----------------Pattern3: Christmas Tree--------
-#define STAR_HEIGHT 2.0f  // Any drone above this height will shine yellow
-#define COLOR_YELLOW WRGB(0, 255, 255, 0)
-#define COLOR_RED    WRGB(0, 255, 0,   6)
-#define COLOR_GREEN  WRGB(1, 20,   251, 0)
+#define STAR_HEIGHT 1.5f  // Any drone above this height will shine yellow
 //------------------------------------------------
 
 //----------------Pattern4: Snowflake-------------
@@ -79,7 +101,7 @@ static uint32_t prevWrgbTop = 0xFFFFFFFF;
 //------------------------------------------------
 
 //----------------Pattern5: Flicker---------------
-#define COLOR_GOLD WRGB(0, 255, 156, 0)
+
 // Define limits for off duration (in ms)
 #define FLICKER_MIN_OFF 200
 #define FLICKER_MAX_OFF 600
@@ -235,44 +257,46 @@ void appMain()
         float y = logGetFloat(idY);
         float z = logGetFloat(idZ);
 
-        // Clamp position within bounds
-        if (x < MIN_X_BOUND) x = MIN_X_BOUND;
-        if (x > MAX_X_BOUND) x = MAX_X_BOUND;
+        // NORMALIZED 0–1 POSITION
+        float xn = (x - MIN_X_BOUND) / (MAX_X_BOUND - MIN_X_BOUND);
+        float yn = (y - MIN_Y_BOUND) / (MAX_Y_BOUND - MIN_Y_BOUND);
+        float zn = (z - MIN_Z_BOUND) / (MAX_Z_BOUND - MIN_Z_BOUND);
+        xn = CLIP(xn, 0.0f, 1.0f);
+        yn = CLIP(yn, 0.0f, 1.0f);
+        zn = CLIP(zn, 0.0f, 1.0f);
 
-        if (y < MIN_Y_BOUND) y = MIN_Y_BOUND;
-        if (y > MAX_Y_BOUND) y = MAX_Y_BOUND;
+        //---------------------------------------------------------
+        // BOTTOM DECK: HEIGHT
+        //---------------------------------------------------------
+        float br = GET_R(COLOR_HEIGHT_LOW)  + (GET_R(COLOR_HEIGHT_HIGH) - GET_R(COLOR_HEIGHT_LOW)) * zn;
+        float bg = GET_G(COLOR_HEIGHT_LOW)  + (GET_G(COLOR_HEIGHT_HIGH) - GET_G(COLOR_HEIGHT_LOW)) * zn;
+        float bb = GET_B(COLOR_HEIGHT_LOW)  + (GET_B(COLOR_HEIGHT_HIGH) - GET_B(COLOR_HEIGHT_LOW)) * zn;
 
-        if (z < MIN_Z_BOUND) z = MIN_Z_BOUND;
-        if (z > MAX_Z_BOUND) z = MAX_Z_BOUND;
+        uint32_t bottom_wrgb = WRGB(0, (uint8_t)br, (uint8_t)bg, (uint8_t)bb);
 
-        // Map X/Y/Z into 0–255 based on bounds
-        float rf = ((x - MIN_X_BOUND) / (MAX_X_BOUND - MIN_X_BOUND)) * 255.0f;
-        float gf = ((y - MIN_Y_BOUND) / (MAX_Y_BOUND - MIN_Y_BOUND)) * 255.0f;
-        float bf = ((z - MIN_Z_BOUND) / (MAX_Z_BOUND - MIN_Z_BOUND)) * 255.0f;
+        //---------------------------------------------------------
+        // TOP DECK: XY 
+        //---------------------------------------------------------
+        // XY_1 → XY_2 (left-to-right at bottom)
+        float r12 = GET_R(COLOR_XY_1) + (GET_R(COLOR_XY_2) - GET_R(COLOR_XY_1)) * xn;
+        float g12 = GET_G(COLOR_XY_1) + (GET_G(COLOR_XY_2) - GET_G(COLOR_XY_1)) * xn;
+        float b12 = GET_B(COLOR_XY_1) + (GET_B(COLOR_XY_2) - GET_B(COLOR_XY_1)) * xn;
 
-        // Remove most of the white component (smallest of RGB)
-        float removeWhite = rf;
-        if (gf < removeWhite) removeWhite = gf;
-        if (bf < removeWhite) removeWhite = bf;
+        // XY_4 → XY_3 (left-to-right at top)
+        float r43 = GET_R(COLOR_XY_4) + (GET_R(COLOR_XY_3) - GET_R(COLOR_XY_4)) * xn;
+        float g43 = GET_G(COLOR_XY_4) + (GET_G(COLOR_XY_3) - GET_G(COLOR_XY_4)) * xn;
+        float b43 = GET_B(COLOR_XY_4) + (GET_B(COLOR_XY_3) - GET_B(COLOR_XY_4)) * xn;
 
-        rf -= removeWhite * 0.8f;
-        gf -= removeWhite * 0.8f;
-        bf -= removeWhite * 0.8f;
+        // Interpolate bottom→top using Y
+        float tr = r12 + (r43 - r12) * yn;
+        float tg = g12 + (g43 - g12) * yn;
+        float tb = b12 + (b43 - b12) * yn;
 
-        // Normalize RGB so sum ~ 255
-        float sum = rf + gf + bf;
-        if (sum < 1.0f) sum = 1.0f; // avoid div by zero
-
-        uint8_t r = (uint8_t)(rf * 255.0f / sum);
-        uint8_t g = (uint8_t)(gf * 255.0f / sum);
-        uint8_t b = (uint8_t)(bf * 255.0f / sum);
-        uint8_t w = 0; // keep white off
-
-        uint32_t wrgb_value = WRGB(w,r,g,b);
+        uint32_t top_wrgb = WRGB(0, (uint8_t)tr, (uint8_t)tg, (uint8_t)tb);
 
         // Set both decks to same value
-        if (bottomAttached) paramSetInt(idWrgbBot, wrgb_value);
-        if (topAttached)    paramSetInt(idWrgbTop, wrgb_value);
+        if (bottomAttached) paramSetInt(idWrgbBot, bottom_wrgb);
+        if (topAttached)    paramSetInt(idWrgbTop, top_wrgb);
     }
     else if (pattern == 3)
     {
