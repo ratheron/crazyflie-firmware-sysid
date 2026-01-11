@@ -58,15 +58,19 @@ static uint32_t prevWrgbBot = 0xFFFFFFFF;
 static uint32_t prevWrgbTop = 0xFFFFFFFF;
 
 //----------------General Color definitions-------
+#define UINT8MAX 255
+#define MAX_BRIGHTNESS 255//64 // 255
+#define ONG_BRIGHTNESS 156//39 // 156
+#define MID_BRIGHTNESS 128//32 // 128
 #define COLOR_OFF       WRGB(0, 0, 0, 0)
-#define COLOR_RED       WRGB(0, 255, 0, 0)
-#define COLOR_GREEN     WRGB(0, 0, 255, 0)
-#define COLOR_BLUE      WRGB(0, 0, 0, 255)
-#define COLOR_YELLOW    WRGB(0, 255, 255, 0)
-#define COLOR_GOLD      WRGB(0, 255, 156, 0)
-#define COLOR_ORANGE    WRGB(0, 255, 128, 0)
-#define COLOR_TURQUOISE WRGB(0, 0, 255, 255)
-#define COLOR_PINK      WRGB(0, 255, 0, 255)
+#define COLOR_RED       WRGB(0, MAX_BRIGHTNESS, 0, 0)
+#define COLOR_GREEN     WRGB(0, 0, MAX_BRIGHTNESS, 0)
+#define COLOR_BLUE      WRGB(0, 0, 0, MAX_BRIGHTNESS)
+#define COLOR_YELLOW    WRGB(0, MAX_BRIGHTNESS, MAX_BRIGHTNESS, 0)
+#define COLOR_GOLD      WRGB(0, MAX_BRIGHTNESS, ONG_BRIGHTNESS, 0)
+#define COLOR_ORANGE    WRGB(0, MAX_BRIGHTNESS, MID_BRIGHTNESS, 0)
+#define COLOR_TURQUOISE WRGB(0, 0, MAX_BRIGHTNESS, MAX_BRIGHTNESS)
+#define COLOR_PINK      WRGB(0, MAX_BRIGHTNESS, 0, MAX_BRIGHTNESS)
 
 //----------------Pattern1: LED Cycle-------------
 
@@ -115,9 +119,9 @@ static uint8_t deckBotOn  = 1;
 //----------------Pattern6: Velocity Indicator--------------
 #define MAX_VEL 1.0f   // m/s, adjust as needed
 
-#define COLOR_VEL_MIN WRGB(0,  0,   0, 255)   // Blue
-#define COLOR_VEL_MID WRGB(0,  0, 255,   0)   // Green
-#define COLOR_VEL_MAX WRGB(0,255,   0,   0)   // Red
+#define COLOR_VEL_MIN WRGB(0,  0,   0, MAX_BRIGHTNESS)   // Blue
+#define COLOR_VEL_MID WRGB(0,  0, MAX_BRIGHTNESS,   0)   // Green
+#define COLOR_VEL_MAX WRGB(0,MAX_BRIGHTNESS,   0,   0)   // Red
 //-----------------------------------------------------------
 
 
@@ -207,12 +211,12 @@ void appMain()
         //---------------------------------------------------------
         // LED CYCLE
         //---------------------------------------------------------
-        int phase = step / 256;
-        int value = step % 256;
+        int phase = step / (UINT8MAX+1);
+        int value = step % (UINT8MAX+1);
 
         switch(phase) {
         case 0:  // G: 0→255, R: 255→0
-            r = 255 - value;
+            r = MAX_BRIGHTNESS - value;
             g = value;
             b = 0;
             w = 0;
@@ -220,7 +224,7 @@ void appMain()
 
         case 1:  // B: 0→255, G: 255→0
             r = 0;
-            g = 255 - value;
+            g = MAX_BRIGHTNESS - value;
             b = value;
             w = 0;
             break;
@@ -228,7 +232,7 @@ void appMain()
         case 2:  // W: 0→255, B: 255→0
             r = 0;
             g = 0;
-            b = 255 - value;
+            b = MAX_BRIGHTNESS - value;
             w = value;
             break;
 
@@ -236,7 +240,7 @@ void appMain()
             r = value;
             g = 0;
             b = 0;
-            w = 255 - value;
+            w = MAX_BRIGHTNESS - value;
             break;
         }
 
@@ -246,7 +250,7 @@ void appMain()
         if (bottomAttached) paramSetInt(idWrgbBot, wrgb_value);
         if (topAttached)    paramSetInt(idWrgbTop, wrgb_value);
 
-        step = (step + 1) % (256 * 4);  // original behavior
+        step = (step + 1) % ((UINT8MAX+1) * 4);  // original behavior
     }
     else if (pattern == 2)
     {
@@ -346,7 +350,7 @@ void appMain()
         TickType_t t = xTaskGetTickCount();
         float fade = 0.5f * (1.0f + sinf(2.0f * 3.14159f * t * portTICK_PERIOD_MS / FADE_PERIOD_MS));
 
-        uint8_t white = (uint8_t)(255.0f * heightFactor * fade);
+        uint8_t white = (uint8_t)(MAX_BRIGHTNESS * heightFactor * fade);
 
         // Prepare WRGB value (R=G=B=0)
         uint32_t wrgb_value = ((uint32_t)white << 24) | 0x00000000;
@@ -413,13 +417,13 @@ void appMain()
             // Blue → Green (0–50%)
             float k = t / 0.5f;
             r = 0;
-            g = (uint8_t)(255.0f * k);
-            b = (uint8_t)(255.0f * (1.0f - k));
+            g = (uint8_t)(MAX_BRIGHTNESS * k);
+            b = (uint8_t)(MAX_BRIGHTNESS * (1.0f - k));
         } else {
             // Green → Red (50–100%)
             float k = (t - 0.5f) / 0.5f;
-            r = (uint8_t)(255.0f * k);
-            g = (uint8_t)(255.0f * (1.0f - k));
+            r = (uint8_t)(MAX_BRIGHTNESS * k);
+            g = (uint8_t)(MAX_BRIGHTNESS * (1.0f - k));
             b = 0;
         }
 
